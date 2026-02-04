@@ -33,13 +33,8 @@ const dancing = Dancing_Script({
 });
 
 export const metadata: Metadata = {
-  title: "Watermark Pro",
+  title: "Watermark Pad - Digital Watermarking Tool",
   description: "Secure your images with customizable watermarks.",
-  icons: {
-    icon: "/pad.png",
-    shortcut: "/pad.png",
-    apple: "/pad.png",
-  },
 };
 
 export default function RootLayout({
@@ -59,6 +54,7 @@ export default function RootLayout({
           dancing.variable,
           "antialiased",
         )}
+        suppressHydrationWarning
       >
         <Script
           src="https://accounts.google.com/gsi/client"

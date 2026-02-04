@@ -43,6 +43,7 @@ export default function Home() {
                     src="/pad.png" 
                     alt="Watermark Pro Logo" 
                     fill 
+                    sizes="32px"
                     className="object-cover"
                 />
             </div>
