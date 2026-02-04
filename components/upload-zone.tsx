@@ -155,18 +155,49 @@ export function UploadZone() {
 
   /* ---------- IMPORT FROM URL ---------- */
   const handleUrlImport = async () => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error();
+    if (!url.trim()) {
+      alert("Vui lòng nhập URL");
+      return;
+    }
 
-      const blob = await res.blob();
-      addImages([new File([blob], "image-from-url", { type: blob.type })]);
+    try {
+      // Extract filename from URL or use default
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const filename = pathname.split("/").pop() || `image-${Date.now()}.jpg`;
+
+      // Try direct fetch first
+      let blob: Blob;
+      try {
+        const res = await fetch(url, { mode: "cors" });
+        if (!res.ok) throw new Error("Direct fetch failed");
+        blob = await res.blob();
+      } catch (directError) {
+        console.log("Direct fetch failed, using proxy");
+        // Fallback to proxy for CORS issues
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Proxy fetch failed");
+        }
+        blob = await res.blob();
+      }
+
+      // Validate it's an image
+      if (!blob.type.startsWith("image/")) {
+        throw new Error("URL không phải là ảnh hợp lệ");
+      }
+
+      const file = new File([blob], filename, { type: blob.type });
+      addImages([file]);
 
       setUrl("");
       setOpenUrl(false);
       setOpenOptions(false);
-    } catch {
-      alert("URL ảnh không hợp lệ");
+    } catch (error: any) {
+      console.error("URL import error:", error);
+      alert(`Không thể tải ảnh từ URL: ${error.message || "URL không hợp lệ"}`);
     }
   };
 

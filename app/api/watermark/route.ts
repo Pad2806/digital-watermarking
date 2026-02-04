@@ -17,11 +17,23 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        console.log(`Processing watermark for: ${imageFile.name}, size: ${imageFile.size} bytes`);
+
         // Parse Config
         const config = JSON.parse(configString) as WatermarkConfig;
 
         // Convert Files to Buffers
         const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+        
+        // Validate image buffer
+        if (imageBuffer.length === 0) {
+            console.error("Empty image buffer received");
+            return NextResponse.json(
+                { error: "Empty image file" },
+                { status: 400 }
+            );
+        }
+
         let logoBuffer: Buffer | undefined;
 
         if (logoFile) {
@@ -31,18 +43,22 @@ export async function POST(req: NextRequest) {
         // Process
         const processedImageBuffer = await processWatermark(imageBuffer, config, logoBuffer);
 
+        console.log(`Successfully processed ${imageFile.name}`);
+
         // Return Image
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return new NextResponse(processedImageBuffer as any, {
             headers: {
                 "Content-Type": "image/png",
-                "Content-Disposition": `attachment; filename="watermarked.png"`,
+                "Content-Disposition": `attachment; filename="watermarked-${imageFile.name}.png"`,
             },
         });
     } catch (error) {
         console.error("Watermark processing error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("Error details:", errorMessage);
         return NextResponse.json(
-            { error: "Internal Server Error" },
+            { error: `Failed to process image: ${errorMessage}` },
             { status: 500 }
         );
     }
