@@ -1,100 +1,101 @@
+"use client";
+
+import { WatermarkTool } from "@/components/watermark-tool";
+import { GuideModal } from "@/components/guide-modal";
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { HelpCircle } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [showGuide, setShowGuide] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+     // Check if user has seen guide
+     const hasSeen = localStorage.getItem("hasSeenGuide");
+     if (!hasSeen) {
+         // Small delay for better UX
+         setTimeout(() => setShowGuide(true), 1000);
+     }
+  }, []);
+
+  const handleOpenGuide = () => {
+      setShowGuide(true);
+  };
+
+  const handleCloseGuide = (open: boolean) => {
+      if (!open) {
+          localStorage.setItem("hasSeenGuide", "true");
+          setShowGuide(false);
+      }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <GuideModal open={showGuide} onOpenChange={handleCloseGuide} />
+      
+      {/* Header */}
+      <header className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border">
+                <Image 
+                    src="/pad.png" 
+                    alt="Watermark Pro Logo" 
+                    fill 
+                    className="object-cover"
+                />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Watermark Pad
+            </h1>
+          </div>
+          <nav className="flex items-center gap-4 text-sm font-medium text-slate-600">
+            <button 
+                onClick={handleOpenGuide}
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors"
+            >
+                <HelpCircle className="w-4 h-4" />
+                Guide
+            </button>
+            <Link href="https://github.com/Pad2806" target="_blank" className="hover:text-indigo-600 transition-colors">About</Link>
+            <Link href="https://github.com/Pad2806/digital-watermarking" target="_blank" className="hover:text-indigo-600 transition-colors">GitHub</Link>
+          </nav>
         </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+        
+        {/* Simple Hero */}
+        <div className="text-center space-y-2 mb-5">
+            <h2 className="text-3xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                Create Your Own Watermark
+            </h2>
+            <p className="text-slate-600 max-w-xl mx-auto text-md">
+                Personalize your images with your own text or logo watermark.
+            </p>
+            <p className="text-slate-500 max-w-2xl mx-auto text-sm">
+                High quality - Secure - Easy to use - Free
+            </p>
+        </div>
+
+        {/* Tool Container */}
+        <div className="bg-white rounded-2xl shadow-sm border p-1 min-h-[600px]">
+            <WatermarkTool />
+        </div>
+
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-auto">
+        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+            <p>© {new Date().getFullYear()} Watermark Pad. All rights reserved by <Link href="https://github.com/Pad2806" target="_blank" className="hover:text-indigo-600 transition-colors">@Pad2806</Link>.</p>
+            <div className="flex gap-6">
+                <Link href="#" className="hover:text-slate-900">Privacy Policy</Link>
+                <Link href="#" className="hover:text-slate-900">Terms of Service</Link>
+            </div>
+        </div>
       </footer>
     </div>
   );
