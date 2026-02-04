@@ -41,7 +41,7 @@ export function WatermarkTool() {
 
           zip.file(`watermarked-${file.name}`, blob);
           successCount++;
-        } catch (itemError: any) {
+        } catch (itemError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
           console.error(`Failed to process ${file.name}:`, itemError);
           errors.push(`${file.name}: ${itemError.message}`);
         }
@@ -62,7 +62,7 @@ export function WatermarkTool() {
       });
       saveAs(content, "watermarked-images.zip");
 
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error("Export error:", error);
       alert("Failed to export images: " + (error.message || "Unknown error"));
     } finally {

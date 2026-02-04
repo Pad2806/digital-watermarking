@@ -2,9 +2,8 @@
 
 import { useWatermarkStore } from "@/store/watermark-store";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { RotateCw, Type, Image as ImageIcon, Grid, X, LayoutGrid, Maximize, Move } from "lucide-react";
+import { Type, Image as ImageIcon, Grid, X, LayoutGrid, Maximize, Move } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   Select,

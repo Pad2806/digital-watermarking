@@ -28,7 +28,7 @@ export async function processWatermarkClient(
             // Load Logo if needed
             let processedLogo: HTMLImageElement | null = null;
             if (config.type !== "text" && logoFile) {
-                processedLogo = await loadAndProcessLogo(logoFile, config, img.width);
+                processedLogo = await loadAndProcessLogo(logoFile, config);
             }
 
             // Apply Watermark
@@ -138,7 +138,7 @@ export async function processWatermarkClient(
     });
 }
 
-async function loadAndProcessLogo(logoFile: File, config: WatermarkConfig, imageWidth: number): Promise<HTMLImageElement> {
+async function loadAndProcessLogo(logoFile: File, config: WatermarkConfig): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = URL.createObjectURL(logoFile);

@@ -17,11 +17,11 @@ import { useWatermarkStore } from "@/store/watermark-store";
 import { CLOUD_CONFIG } from "@/lib/cloud-config";
 declare global {
   interface Window {
-    google: any;
-    Dropbox: any;
+    google: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    Dropbox: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
-  const google: any;
+  const google: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 /* ----------------------------------------
    UPLOAD ZONE
@@ -76,7 +76,7 @@ export function UploadZone() {
         const tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLOUD_CONFIG.google.clientId,
           scope: "https://www.googleapis.com/auth/drive.readonly",
-          callback: async (tokenResponse: any) => {
+          callback: async (tokenResponse: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             try {
               const accessToken = tokenResponse.access_token;
 
@@ -125,7 +125,7 @@ export function UploadZone() {
       multiselect: true,
       extensions: [".png", ".jpg", ".jpeg", ".webp"],
 
-      success: async (files: any[]) => {
+      success: async (files: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
           for (const file of files) {
             const res = await fetch(file.link);
@@ -172,7 +172,7 @@ export function UploadZone() {
         const res = await fetch(url, { mode: "cors" });
         if (!res.ok) throw new Error("Direct fetch failed");
         blob = await res.blob();
-      } catch (directError) {
+      } catch {
         console.log("Direct fetch failed, using proxy");
         // Fallback to proxy for CORS issues
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -195,7 +195,7 @@ export function UploadZone() {
       setUrl("");
       setOpenUrl(false);
       setOpenOptions(false);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error("URL import error:", error);
       alert(`Không thể tải ảnh từ URL: ${error.message || "URL không hợp lệ"}`);
     }

@@ -121,108 +121,11 @@ function generateLogoSvg(width: number, height: number, config: WatermarkConfig,
     const cx = (width / 2) + (config.offsetX || 0);
     const cy = (height / 2) + (config.offsetY || 0);
 
-    // Filter Definitions
-    let filterDef = "";
-    let filterAttr = "";
-    let maskDef = "";
-    let maskRef = "";
-    let fillElement = "";
-    let logoImage = "";
-
-    // If Remove BG is enabled, we use a color matrix to make white transparent
-    const filterId = "remove-white-bg";
-    if (config.logo.removeBackground) {
-        filterDef = `
-         <filter id="${filterId}">
-            <feColorMatrix type="matrix" values="
-                1 0 0 0 0  
-                0 1 0 0 0  
-                0 0 1 0 0  
-                -1 -1 -1 1 0" 
-            />
-         </filter>`;
-        // Simple luminance-to-alpha logic: R+G+B roughly maps to transparency? 
-        // Actually "White to Transparent" is: If R=1,G=1,B=1 -> A=0.
-        // A simple approx is `A = 1 - (R+G+B)/3` (inverted luminance).
-        // Better matrix for "Make White Transparent":
-        // 1 0 0 0 0
-        // 0 1 0 0 0
-        // 0 0 1 0 0
-        // 0 0 0 1 0  (Keep Alpha)
-        // But we want A to be 0 if RGB is high. 
-        // Let's rely on standard masking if possible, but filter is faster.
-        // Let's use a simpler approach: 
-        // Treat the image itself as a mask for "Colorize".
-
-        // If Colorize is ENABLED:
-        if (config.logo.enableColorize) {
-            // We want to draw a RECT of the chosen color.
-            // Masked by the LOGO (where dark parts = opaque, white parts = transparent).
-            // Standard SVG Mask uses Luminance: White=Opaque, Black=Transparent.
-            // Our logo is likely "Black content on White BG". 
-            // We want: Black Content -> Opaque Mask (Show Color). White BG -> Transparent Mask (Hide Color).
-            // So we need to INVERT the image luminance found in mask.
-
-            const maskId = "logo-mask";
-            maskDef = `
-             <mask id="${maskId}">
-                <image href="data:image/png;base64,${base64Logo}" x="${-itemWidth / 2}" y="${-itemHeight / 2}" width="${itemWidth}" height="${itemHeight}" filter="url(#invert-filter)" />
-             </mask>
-             <filter id="invert-filter">
-                <feColorMatrix type="matrix" values="-1 0 0 0 1  -1 0 0 0 1  -1 0 0 0 1  0 0 0 1 0" />
-             </filter>
-             `;
-            // Actually, Mask Luminance: 
-            // Image: Black (0,0,0) -> Mask Luma 0 -> Transparent.
-            // Image: White (1,1,1) -> Mask Luma 1 -> Opaque.
-            // We want: Black Content -> Visible (Opaque). White BG -> Hidden (Transparent).
-            // So we want White -> Transparent (0). Black -> Opaque (1).
-            // So we need to INVERT the luma.
-            // The invert filter above: R'=1-R, etc. So White(1) becomes Black(0). Black(0) becomes White(1).
-            // This gives us the correct mask.
-
-            // Then we draw a Rect with the config.color, using this mask.
-        } else {
-            // Just Remove Background (transparent).
-            // We can use the same "Invert" logic as a Mask for the Image itself?
-            // <image ... mask="url(#bg-mask)" /> using the inverted version of itself.
-        }
-    }
-
-    // RE-STRATEGY for Robustness:
-    // 1. Colorize Enabled: Draw RECT (color) masked by INVERTED LOGO.
-    // 2. Remove BG Only: Draw IMAGE masked by INVERTED LOGO.
-    // 3. Normal: Draw IMAGE.
-
-    // We already calculated positions.
-    // We need to define the reuseable "Item" (Image or Colored Rect) and place it at every position.
-    // It's cleaner to define the item content in <defs> or just repeat the group logic.
-
-    const elements = positions.map(p => {
-        // Translate to position
-        // Center of item is at (0,0) inside the group
-
-        let content = `<image href="data:image/png;base64,${base64Logo}" x="${-itemWidth / 2}" y="${-itemHeight / 2}" width="${itemWidth}" height="${itemHeight}" />`;
-
-        if (config.logo.removeBackground) {
-            // We need a unique ID for masks if we iterate? No, definitions can be global if content is same.
-        }
-        return `<g transform="translate(${p.x}, ${p.y})">${content}</g>`;
-    }).join('\n');
-
-    // Wait, reusing definitions inside map is bloating.
-    // Let's define the "watermark-item" symbol.
-
     let defs = "";
     let contentUse = "";
 
     if (config.logo.removeBackground) {
         // Luminance Mask: White(1) -> Transparent(0). Black(0) -> Opaque(1).
-        // Standard Mask: Luma 1 = Opaque.
-        // So we need Image White -> Mask Black -> Transparent.
-        // Image Black -> Mask White -> Opaque.
-        // Invert Filter is needed.
-
         const maskId = "content-mask";
         defs = `
           <filter id="invert-luminance">
@@ -284,49 +187,7 @@ function generateComboSvg(width: number, height: number, config: WatermarkConfig
     const logoX = -totalW / 2;
     const textX = logoX + logoW + gap;
 
-    // Define Logo Content (Same Logic)
-    let logoDefs = "";
-    let logoUse = "";
-
-    if (config.logo.removeBackground) {
-        const maskId = "combo-logo-mask";
-        logoDefs = `
-          <filter id="invert-luminance-combo">
-             <feColorMatrix type="matrix" values="-1 0 0 0 1  -1 0 0 0 1  -1 0 0 0 1  0 0 0 1 0" />
-          </filter>
-          <mask id="${maskId}">
-             <image href="data:image/png;base64,${base64Logo}" width="${logoW}" height="${logoH}" filter="url(#invert-luminance-combo)" />
-          </mask>
-        `;
-
-        if (config.logo.enableColorize) {
-            const logoC = config.logo.logoColor || "#000000";
-            logoUse = `<rect x="${logoX}" y="${-logoH / 2}" width="${logoW}" height="${logoH}" fill="${logoC}" mask="url(#${maskId})" />`;
-        } else {
-            // Note: logoX, logoY handling needs care with mask coordinates.
-            // Mask coordinate system is relative to user space? Default is objectBoundingBox.
-            // If maskUnits="userSpaceOnUse", we need exact coords.
-            // Let's use a group for the logo to simplify 0,0 coords in mask.
-            logoUse = `
-             <g transform="translate(${logoX}, ${-logoH / 2})">
-                <image href="data:image/png;base64,${base64Logo}" width="${logoW}" height="${logoH}" mask="url(#${maskId})" />
-             </g>`;
-
-            // Wait, if enableColorize above uses rect at x,y, it assumes mask is aligned.
-            // Best way: define the logo drawing at 0,0 separate from placement.
-        }
-    } else {
-        logoUse = `<image href="data:image/png;base64,${base64Logo}" x="${logoX}" y="${-logoH / 2}" width="${logoW}" />`;
-    }
-
-    // Corrected Block for Logo Generation inside Loop
-    // To avoid complex definitions repeatedly, let's use the simple approach of embedding logic if small
-    // OR just use <defs> correctly.
-
-    // Let's go with embedding simpler versions for now to minimize risk of mask ID collision if multiple exports?
-    // Actually ID collision is fine inside one SVG.
-
-    // Refined Logic:
+    // Refined Logic for Logo Group
     const logoGroup = config.logo.removeBackground ?
         (config.logo.enableColorize ?
             `<g transform="translate(${logoX}, ${-logoH / 2})">
@@ -337,7 +198,7 @@ function generateComboSvg(width: number, height: number, config: WatermarkConfig
                 <image href="data:image/png;base64,${base64Logo}" width="${logoW}" height="${logoH}" mask="url(#combo-mask)" />
              </g>`
         ) :
-        `<image href="data:image/png;base64,${base64Logo}" x="${logoX}" y="${-logoH / 2}" width="${logoW}" />`;
+        `<image href="data:image/png;base64,${base64Logo}" x="${logoX}" y="${-logoH / 2}" width="${logoW}" height="${logoH}" />`;
 
 
     const elements = positions.map(p => `
