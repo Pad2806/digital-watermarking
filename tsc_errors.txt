@@ -1,0 +1,45 @@
+﻿app/api/watermark/route.ts(35,33): error TS2345: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+app/page.tsx(7,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+components/watermark-canvas.tsx(44,14): error TS2339: Property 'logo' does not exist on type 'WatermarkConfig'.
+  Property 'logo' does not exist on type 'BaseWatermarkConfig & { type: "text"; text: TextConfig; }'.
+components/watermark-controls.tsx(4,58): error TS2307: Cannot find module '@/components/ui/tabs' or its corresponding type declarations.
+components/watermark-controls.tsx(5,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+components/watermark-controls.tsx(6,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+components/watermark-controls.tsx(7,24): error TS2307: Cannot find module '@/components/ui/slider' or its corresponding type declarations.
+components/watermark-controls.tsx(8,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+components/watermark-controls.tsx(45,32): error TS7031: Binding element 'val' implicitly has an 'any' type.
+components/watermark-controls.tsx(56,32): error TS7031: Binding element 'val' implicitly has an 'any' type.
+components/watermark-controls.tsx(66,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(74,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(87,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(89,39): error TS2339: Property 'text' does not exist on type 'WatermarkConfig'.
+  Property 'text' does not exist on type 'BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; }'.
+components/watermark-controls.tsx(100,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(102,41): error TS2339: Property 'text' does not exist on type 'WatermarkConfig'.
+  Property 'text' does not exist on type 'BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; }'.
+components/watermark-controls.tsx(114,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(116,43): error TS2339: Property 'text' does not exist on type 'WatermarkConfig'.
+  Property 'text' does not exist on type 'BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; }'.
+components/watermark-controls.tsx(123,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(125,43): error TS2339: Property 'text' does not exist on type 'WatermarkConfig'.
+  Property 'text' does not exist on type 'BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; }'.
+components/watermark-controls.tsx(143,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/watermark-controls.tsx(146,39): error TS2339: Property 'logo' does not exist on type 'WatermarkConfig'.
+  Property 'logo' does not exist on type 'BaseWatermarkConfig & { type: "text"; text: TextConfig; }'.
+components/watermark-controls.tsx(158,36): error TS7031: Binding element 'val' implicitly has an 'any' type.
+components/watermark-controls.tsx(160,39): error TS2339: Property 'logo' does not exist on type 'WatermarkConfig'.
+  Property 'logo' does not exist on type 'BaseWatermarkConfig & { type: "text"; text: TextConfig; }'.
+store/watermark-store.ts(36,36): error TS2345: Argument of type '(state: WatermarkState) => { config: { type: "text"; opacity: number; rotate: number; gapX: number; gapY: number; text: TextConfig; } | { type: "text" | "logo"; ... 5 more ...; text: TextConfig; } | ... 6 more ... | { ...; }; }' is not assignable to parameter of type 'WatermarkState | Partial<WatermarkState> | ((state: WatermarkState) => WatermarkState | Partial<WatermarkState>)'.
+  Type '(state: WatermarkState) => { config: { type: "text"; opacity: number; rotate: number; gapX: number; gapY: number; text: TextConfig; } | { type: "text" | "logo"; ... 5 more ...; text: TextConfig; } | ... 6 more ... | { ...; }; }' is not assignable to type '(state: WatermarkState) => WatermarkState | Partial<WatermarkState>'.
+    Type '{ config: { type: "text"; opacity: number; rotate: number; gapX: number; gapY: number; text: TextConfig; } | { type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; } | ... 6 more ... | { ...; }; }' is not assignable to type 'WatermarkState | Partial<WatermarkState>'.
+      Type '{ config: { type: "text"; opacity: number; rotate: number; gapX: number; gapY: number; text: TextConfig; } | { type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; } | ... 6 more ... | { ...; }; }' is not assignable to type 'Partial<WatermarkState>'.
+        Types of property 'config' are incompatible.
+          Type '{ type: "text"; opacity: number; rotate: number; gapX: number; gapY: number; text: TextConfig; } | { type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; } | ... 6 more ... | { ...; }' is not assignable to type 'WatermarkConfig | undefined'.
+            Type '{ type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; }' is not assignable to type 'WatermarkConfig | undefined'.
+              Type '{ type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; }' is not assignable to type '(BaseWatermarkConfig & { type: "text"; text: TextConfig; }) | (BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; })'.
+                Type '{ type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; }' is not assignable to type 'BaseWatermarkConfig & { type: "logo"; logo: LogoConfig; }'.
+                  Type '{ type: "text" | "logo"; opacity: number; rotate: number; gapX: number; gapY: number; logo?: LogoConfig | undefined; text: TextConfig; }' is not assignable to type '{ type: "logo"; logo: LogoConfig; }'.
+                    Types of property 'type' are incompatible.
+                      Type '"text" | "logo"' is not assignable to type '"logo"'.
+                        Type '"text"' is not assignable to type '"logo"'.
