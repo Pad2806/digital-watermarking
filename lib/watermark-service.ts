@@ -103,9 +103,6 @@ function generateTextSvg(width: number, height: number, config: WatermarkConfig)
     return `
   <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
     <defs>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap');
-        </style>
     </defs>
     <g opacity="${config.opacity}">
       <g transform="translate(${cx}, ${cy}) rotate(${config.rotate})">
@@ -353,9 +350,6 @@ function generateComboSvg(width: number, height: number, config: WatermarkConfig
     return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap');
-        </style>
         ${config.logo.removeBackground ? `
           <filter id="invert-luminance-combo">
              <feColorMatrix type="matrix" values="-1 0 0 0 1  -1 0 0 0 1  -1 0 0 0 1  0 0 0 1 0" />

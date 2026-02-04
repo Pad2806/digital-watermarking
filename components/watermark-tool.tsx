@@ -21,43 +21,50 @@ export function WatermarkTool() {
 
     setIsExporting(true);
     setExportProgress(0);
-    
+
     try {
       const zip = new JSZip();
+      let successCount = 0;
+      const errors: string[] = [];
       
+      const { processWatermarkClient } = await import("@/lib/client-processor");
+
       // Process images sequentially
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
         setExportProgress(Math.round(((i + 1) / imageFiles.length) * 100));
 
-        const formData = new FormData();
-        formData.append("image", file);
-        formData.append("config", JSON.stringify(config));
-        
-        if (config.type !== "text" && config.logo.logoFile) {
-          formData.append("logo", config.logo.logoFile);
+        try {
+          const blob = await processWatermarkClient(file, config, config.logo.logoFile);
+          
+          if (blob.size === 0) throw new Error("Processing failed: empty blob");
+
+          zip.file(`watermarked-${file.name}`, blob);
+          successCount++;
+        } catch (itemError: any) {
+          console.error(`Failed to process ${file.name}:`, itemError);
+          errors.push(`${file.name}: ${itemError.message}`);
         }
-
-        const response = await fetch("/api/watermark", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-           console.error(`Failed to process ${file.name}`);
-           continue; 
-        }
-
-        const blob = await response.blob();
-        zip.file(`watermarked-${file.name}`, blob);
       }
 
-      const content = await zip.generateAsync({ type: "blob" });
+      if (successCount === 0) {
+        alert("No images were successfully processed.\n\nErrors:\n" + errors.join("\n"));
+        return;
+      }
+
+      if (errors.length > 0) {
+        alert(`Successfully processed ${successCount} images, but ${errors.length} failed.\nCheck the console for details.`);
+      }
+
+      const content = await zip.generateAsync({ 
+        type: "blob",
+        compression: "STORE"
+      });
       saveAs(content, "watermarked-images.zip");
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Export error:", error);
-      alert("Failed to export images.");
+      alert("Failed to export images: " + (error.message || "Unknown error"));
     } finally {
       setIsExporting(false);
       setExportProgress(0);

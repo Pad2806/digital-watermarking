@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
         // Convert Files to Buffers
         const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-        
+
         // Validate image buffer
         if (imageBuffer.length === 0) {
             console.error("Empty image buffer received");
@@ -43,20 +43,23 @@ export async function POST(req: NextRequest) {
         // Process
         const processedImageBuffer = await processWatermark(imageBuffer, config, logoBuffer);
 
-        console.log(`Successfully processed ${imageFile.name}`);
+        if (!processedImageBuffer || processedImageBuffer.length === 0) {
+            throw new Error("Processing resulted in an empty buffer");
+        }
+
+        console.log(`Successfully processed ${imageFile.name}, output size: ${processedImageBuffer.length} bytes`);
 
         // Return Image
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return new NextResponse(processedImageBuffer as any, {
             headers: {
                 "Content-Type": "image/png",
                 "Content-Disposition": `attachment; filename="watermarked-${imageFile.name}.png"`,
+                "Cache-Control": "no-store, max-age=0",
             },
         });
     } catch (error) {
         console.error("Watermark processing error:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error("Error details:", errorMessage);
         return NextResponse.json(
             { error: `Failed to process image: ${errorMessage}` },
             { status: 500 }
