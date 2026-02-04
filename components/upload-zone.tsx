@@ -1,273 +1,313 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Laptop, Link as LinkIcon, HardDrive, Image as ImageIcon, Cloud, UploadCloud } from "lucide-react"; 
-import { useWatermarkStore } from "@/store/watermark-store";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { UploadCloud, Laptop, HardDrive, Link as LinkIcon } from "lucide-react";
+import useDrivePicker from "react-google-drive-picker";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import useDrivePicker from "react-google-drive-picker";
-// @ts-ignore
-import DropboxChooser from "react-dropbox-chooser";
-import { CLOUD_CONFIG, hasDropboxKeys, hasGoogleKeys } from "@/lib/cloud-config";
+import { useWatermarkStore } from "@/store/watermark-store";
+import { CLOUD_CONFIG } from "@/lib/cloud-config";
+declare global {
+  interface Window {
+    google: any;
+    Dropbox: any;
+  }
 
+  const google: any;
+}
+/* ----------------------------------------
+   UPLOAD ZONE
+----------------------------------------- */
 export function UploadZone() {
   const { addImages } = useWatermarkStore();
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const [showUrlDialog, setShowUrlDialog] = useState(false);
-  const [urlInput, setUrlInput] = useState("");
-  
-  // Google Drive Hook
-  const [openDrivePicker] = useDrivePicker();
+
+  const [openOptions, setOpenOptions] = useState(false);
+  const [openUrl, setOpenUrl] = useState(false);
+  const [url, setUrl] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [openPicker] = useDrivePicker();
 
+  /* ---------- DRAG DROP ---------- */
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        addImages(acceptedFiles);
-        setIsOptionsOpen(false); 
-      }
+    (files: File[]) => {
+      if (files.length) addImages(files);
+      setOpenOptions(false);
     },
-    [addImages]
+    [addImages],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".webp"],
-    },
-    noClick: true, 
+    accept: { "image/*": [] },
     multiple: true,
+    noClick: true,
   });
 
-  const handleMainClick = () => {
-      setIsOptionsOpen(true);
+  /* ---------- HANDLERS ---------- */
+  const handleLocalUpload = () => fileInputRef.current?.click();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) addImages(Array.from(e.target.files));
+    setOpenOptions(false);
   };
 
-  const handleComputerUploadClick = () => {
-      fileInputRef.current?.click();
-  };
-
-  const handleHiddenInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) {
-          addImages(Array.from(e.target.files));
-          setIsOptionsOpen(false);
-      }
-  };
-
-  // Helper to fetch file from URL (using Proxy to bypass CORS)
-  const fetchAndAddImage = async (url: string, name: string = "downloaded_image.png", token?: string) => {
-      try {
-          // Use our local proxy to avoid CORS errors from Dropox/Drive
-          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-          
-          const headers: HeadersInit = {};
-          if (token) {
-              headers["Authorization"] = `Bearer ${token}`;
-          }
-
-          const res = await fetch(proxyUrl, { headers });
-          if (!res.ok) {
-              const errorData = await res.json();
-              throw new Error(errorData.error || "Proxy fetch failed");
-          }
-          
-          const blob = await res.blob();
-          const file = new File([blob], name, { type: blob.type });
-          addImages([file]);
-          setIsOptionsOpen(false);
-          setShowUrlDialog(false);
-          setUrlInput("");
-      } catch (err: any) {
-          console.error("Fetch error:", err);
-          alert(`Error: ${err.message}`);
-      }
-  };
-
-  const handleUrlSubmit = () => {
-      if (urlInput) {
-          fetchAndAddImage(urlInput, "web_image.png");
-      }
-  };
-
+  /* ---------- GOOGLE DRIVE (OAUTH) ---------- */
   const handleGoogleDrive = () => {
-      if (!hasGoogleKeys()) {
-          alert("Missing Google API Keys in lib/cloud-config.ts");
-          return;
-      }
-      openDrivePicker({
-          clientId: CLOUD_CONFIG.google.clientId,
-          developerKey: CLOUD_CONFIG.google.developerKey,
-          viewId: "DOCS_IMAGES", 
-          showUploadView: true,
-          showUploadFolders: true,
-          supportDrives: true,
-          multiselect: true,
-          // Thêm các quyền cần thiết cho cả Drive và Photos
-          customScopes: [
-            'https://www.googleapis.com/auth/drive.readonly',
-            'https://www.googleapis.com/auth/drive.file',
-            'https://www.googleapis.com/auth/photoslibrary.readonly'
-          ],
-          callbackFunction: (data) => {
-              if (data.action === "picked") {
-                  const token = data.oauthToken; 
-                  data.docs.map((doc: any) => {
-                      console.log("Downloading Drive file:", doc);
-                      
-                      // Use the Google Drive API 'alt=media' endpoint. 
-                      // We don't need the key if we have an OAuth token.
-                      const fileId = doc.id;
-                      const downloadApiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-                      
-                      fetchAndAddImage(downloadApiUrl, doc.name || "drive_image.png", token);
-                  });
+    openPicker({
+      clientId: CLOUD_CONFIG.google.clientId,
+      developerKey: CLOUD_CONFIG.google.developerKey,
+      viewId: "DOCS_IMAGES",
+      multiselect: true,
+      supportDrives: true,
+
+      callbackFunction: (data) => {
+        if (data.action !== "picked") return;
+
+        // 1️⃣ Init OAuth token client
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLOUD_CONFIG.google.clientId,
+          scope: "https://www.googleapis.com/auth/drive.readonly",
+          callback: async (tokenResponse: any) => {
+            try {
+              const accessToken = tokenResponse.access_token;
+
+              for (const file of data.docs) {
+                const res = await fetch(
+                  `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${accessToken}`,
+                    },
+                  },
+                );
+
+                if (!res.ok) throw new Error("Download failed");
+
+                const blob = await res.blob();
+                const image = new File([blob], file.name, {
+                  type: blob.type || "image/jpeg",
+                });
+
+                addImages([image]);
               }
+
+              setOpenOptions(false);
+            } catch (err) {
+              console.error(err);
+              alert("Không thể tải file từ Google Drive");
+            }
           },
-      });
+        });
+
+        // 2️⃣ Request access token
+        tokenClient.requestAccessToken();
+      },
+    });
   };
-  
-  const handleDropboxSuccess = (files: any[]) => {
-      files.forEach(f => {
-          // f.link is the download link
-          fetchAndAddImage(f.link, f.name);
-      });
+  /*-------------- Dropbox (Drop-ins) --------------*/
+  const handleDropbox = () => {
+    if (!window.Dropbox) {
+      alert("Dropbox SDK chưa được load");
+      return;
+    }
+
+    window.Dropbox.choose({
+      linkType: "direct", // BẮT BUỘC để fetch được file
+      multiselect: true,
+      extensions: [".png", ".jpg", ".jpeg", ".webp"],
+
+      success: async (files: any[]) => {
+        try {
+          for (const file of files) {
+            const res = await fetch(file.link);
+            if (!res.ok) throw new Error("Download failed");
+
+            const blob = await res.blob();
+
+            const image = new File([blob], file.name, {
+              type: blob.type || "image/jpeg",
+            });
+
+            addImages([image]);
+          }
+
+          setOpenOptions(false);
+        } catch (err) {
+          console.error(err);
+          alert("Không thể tải file từ Dropbox");
+        }
+      },
+
+      cancel: () => {
+        console.log("Dropbox picker cancelled");
+      },
+    });
   };
 
+  /* ---------- IMPORT FROM URL ---------- */
+  const handleUrlImport = async () => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+
+      const blob = await res.blob();
+      addImages([new File([blob], "image-from-url", { type: blob.type })]);
+
+      setUrl("");
+      setOpenUrl(false);
+      setOpenOptions(false);
+    } catch {
+      alert("URL ảnh không hợp lệ");
+    }
+  };
+
+  /* ---------- UI ---------- */
   return (
     <>
-        <div 
-            className="h-full flex flex-col items-center justify-center p-8 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200 transition-all hover:bg-gray-50/80 hover:border-blue-200 cursor-pointer group" 
-            {...getRootProps()}
-            style={{ touchAction: 'none' }}
-            onClick={handleMainClick}
-        >
-            <input {...getInputProps()} />
-            
-            <div className="flex flex-col items-center gap-4 text-center">
-                <div className="p-5 rounded-full bg-white group-hover:scale-110 transition-transform shadow-sm border group-hover:border-blue-200 text-blue-500">
-                    <UploadCloud className="w-10 h-10" />
-                </div>
-                <div className="space-y-1">
-                    <h3 className="text-xl font-semibold text-gray-900">Upload Image</h3>
-                    <p className="text-sm text-gray-500 max-w-xs">
-                        {isDragActive ? "Drop it right here!" : "Click to choose method or drag & drop"}
-                    </p>
-                </div>
+      <div
+        {...getRootProps()}
+        onClick={() => setOpenOptions(true)}
+        className="relative h-full flex flex-col items-center justify-center border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer bg-white hover:bg-blue-50/30 transition-all duration-300 group overflow-hidden"
+      >
+        <input {...getInputProps()} />
+
+        {/* Decorative circles - smaller scale */}
+        <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-100 rounded-full opacity-20 group-hover:scale-125 transition-transform duration-500"></div>
+        <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-indigo-100 rounded-full opacity-20 group-hover:scale-125 transition-transform duration-500"></div>
+
+        {/* Main content */}
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="relative mb-4">
+            <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+            <div className="relative p-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+              <UploadCloud className="w-10 h-10 text-white" />
             </div>
+          </div>
+
+          <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+            {isDragActive ? "Drop it here!" : "Upload Image"}
+          </h3>
+          <p className="text-sm text-gray-500 text-center max-w-xs">
+            {isDragActive
+              ? "Release to upload your files"
+              : "Click to choose or drag & drop your images"}
+          </p>
+
+          {/* Supported formats */}
+          <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+            <span className="px-2 py-1 bg-gray-100 rounded">PNG</span>
+            <span className="px-2 py-1 bg-gray-100 rounded">JPG</span>
+            <span className="px-2 py-1 bg-gray-100 rounded">WEBP</span>
+          </div>
         </div>
+      </div>
 
-        {/* Options Modal */}
-        <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
-            <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                    <DialogTitle>Choose Upload Method</DialogTitle>
-                </DialogHeader>
-                
-                <div className="flex flex-col gap-4 py-4">
-                     <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept="image/png, image/jpeg, image/webp" 
-                        multiple 
-                        onChange={handleHiddenInputChange} 
-                    />
+      {/* OPTIONS MODAL - Smaller & Cleaner */}
+      <Dialog open={openOptions} onOpenChange={setOpenOptions}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-xl font-semibold">
+              Choose Upload Method
+            </DialogTitle>
+          </DialogHeader>
 
-                    {/* Primary: Computer */}
-                   <button 
-                        onClick={handleComputerUploadClick}
-                        className="w-full group relative flex items-center gap-4 bg-white hover:bg-blue-50 border-2 border-slate-100 hover:border-blue-200 rounded-xl p-4 transition-all"
-                   >
-                       <div className="w-12 h-12 flex items-center justify-center bg-blue-100/50 rounded-lg text-blue-600">
-                           <Laptop className="w-6 h-6" />
-                       </div>
-                       <div className="text-left">
-                           <span className="block font-semibold text-slate-900 group-hover:text-blue-700">From My Computer</span>
-                           <span className="text-sm text-slate-500">Browse files from your device</span>
-                       </div>
-                   </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={handleInputChange}
+          />
 
-                   {/* Secondary Grid */}
-                   <div className="grid grid-cols-2 gap-3">
-                       <button className="flex items-center gap-3 bg-white hover:bg-gray-50 border border-slate-200 hover:border-slate-300 rounded-lg p-3 transition-all" onClick={handleGoogleDrive}>
-                           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-green-50 text-green-600">
-                                <HardDrive className="w-4 h-4" />
-                           </div>
-                           <span className="font-medium text-slate-700 text-sm">Google Drive</span>
-                       </button>
-
-                       {/* Reuse Google Drive Handler for Photos (Same Picker usually) */}
-                       <button className="flex items-center gap-3 bg-white hover:bg-gray-50 border border-slate-200 hover:border-slate-300 rounded-lg p-3 transition-all" onClick={handleGoogleDrive}>
-                           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500">
-                                <ImageIcon className="w-4 h-4" />
-                           </div>
-                           <span className="font-medium text-slate-700 text-sm">Google Photos</span>
-                       </button>
-
-                       {/* Dropbox Chooser */}
-                       {hasDropboxKeys() ? (
-                           <DropboxChooser 
-                                appKey={CLOUD_CONFIG.dropbox.appKey}
-                                success={handleDropboxSuccess}
-                                cancel={() => console.log('Dropbox canceled')}
-                                multiselect={true}
-                                extensions={['.jpg', '.png', '.jpeg', '.webp']}
-                           >
-                                <button className="flex items-center gap-3 bg-white hover:bg-gray-50 border border-slate-200 hover:border-slate-300 rounded-lg p-3 transition-all w-full">
-                                    <div className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-50 text-blue-500">
-                                            <Cloud className="w-4 h-4" />
-                                    </div>
-                                    <span className="font-medium text-slate-700 text-sm">Dropbox</span>
-                                </button>
-                           </DropboxChooser>
-                       ) : (
-                           <button className="flex items-center gap-3 bg-white hover:bg-gray-50 border border-slate-200 hover:border-slate-300 rounded-lg p-3 transition-all" onClick={() => alert("Missing Dropbox App Key in lib/cloud-config.ts")}>
-                                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-50 text-blue-500">
-                                        <Cloud className="w-4 h-4" />
-                                </div>
-                                <span className="font-medium text-slate-700 text-sm">Dropbox</span>
-                            </button>
-                       )}
-
-                       <button 
-                          className="flex items-center gap-3 bg-white hover:bg-gray-50 border border-slate-200 hover:border-slate-300 rounded-lg p-3 transition-all"
-                          onClick={() => {
-                              setShowUrlDialog(true);
-                          }}
-                       >
-                           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-500">
-                                <LinkIcon className="w-4 h-4" />
-                           </div>
-                           <span className="font-medium text-slate-700 text-sm">Web Link</span>
-                       </button>
-                   </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-
-        <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Import from Web Link</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 py-4">
-                  <Input 
-                        placeholder="https://example.com/image.png" 
-                        value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
-                  />
-                  <p className="text-xs text-gray-500">
-                      Note: Ensure the URL allows direct access (CORS enabled).
-                  </p>
+          <div className="grid gap-2.5 py-2">
+            {/* Primary option - Computer */}
+            <button
+              onClick={handleLocalUpload}
+              className="flex items-center gap-3 p-3.5 rounded-lg border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-all text-left group"
+            >
+              <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-500 text-white group-hover:scale-110 transition-transform">
+                <Laptop className="w-5 h-5" />
               </div>
-              <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowUrlDialog(false)}>Cancel</Button>
-                  <Button onClick={handleUrlSubmit} disabled={!urlInput}>Import Image</Button>
-              </DialogFooter>
-          </DialogContent>
+              <div>
+                <div className="font-semibold text-gray-800">
+                  From My Computer
+                </div>
+                <div className="text-xs text-gray-500">Browse local files</div>
+              </div>
+            </button>
+
+            {/* Other options */}
+            <button
+              onClick={handleGoogleDrive}
+              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all text-left"
+            >
+              <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-green-50 text-green-600">
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-gray-700">Google Drive</span>
+            </button>
+
+            <button
+              onClick={handleDropbox}
+              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all text-left"
+            >
+              <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-gray-700">Dropbox</span>
+            </button>
+
+            <button
+              onClick={() => setOpenUrl(true)}
+              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all text-left"
+            >
+              <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                <LinkIcon className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-gray-700">From URL</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* URL MODAL */}
+      <Dialog open={openUrl} onOpenChange={setOpenUrl}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Import from URL</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <Input
+              placeholder="https://example.com/image.jpg"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="h-11"
+            />
+            <p className="text-xs text-gray-500">
+              Enter a direct link to an image file
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setOpenUrl(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUrlImport} disabled={!url}>
+              Import Image
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </>
   );

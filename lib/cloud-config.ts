@@ -1,6 +1,6 @@
 export const CLOUD_CONFIG = {
     google: {
-        clientId: "4648765808-3vai3u5qam5eemv0hcbk5l45b5s51joj.apps.googleusercontent.com",
+        clientId: "4648765808-r67fi397g4sqo5v3fkjif3il7u0njkub.apps.googleusercontent.com",
         developerKey: "AIzaSyCLsKybgjAt6RFuSFe0nJBZiTFHWeQ6JLk",
     },
     dropbox: {
